@@ -13,6 +13,7 @@ import budgetRoutes from "./modules/budgets/budget.routes";
 import alertRoutes from "./modules/alerts/alert.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import reportRoutes from "./modules/reports/report.routes";
+import syncRoutes from "./modules/sync/sync.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/budgets", budgetRoutes);
 app.use("/alerts", alertRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/reports", reportRoutes);
+app.use("/sync", syncRoutes);
 
 // Error handler must be last
 app.use(errorHandler);
