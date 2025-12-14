@@ -30,7 +30,7 @@ export interface AlertFilters {
 export interface CreditLimitWarningMetadata {
   creditCardId: string;
   creditCardName: string;
-  currency: 'GTQ' | 'USD';
+  currency: "GTQ" | "USD";
   currentBalance: number;
   limit: number;
   percentage: number;
@@ -68,8 +68,8 @@ export interface MonthlySummaryMetadata {
 }
 
 export enum AlertType {
-  CREDIT_LIMIT_WARNING = 'CREDIT_LIMIT_WARNING',
-  BUDGET_EXCEEDED = 'BUDGET_EXCEEDED',
-  PAYMENT_REMINDER = 'PAYMENT_REMINDER',
-  MONTHLY_SUMMARY = 'MONTHLY_SUMMARY'
+  CREDIT_LIMIT_WARNING = "CREDIT_LIMIT_WARNING",
+  BUDGET_EXCEEDED = "BUDGET_EXCEEDED",
+  PAYMENT_REMINDER = "PAYMENT_REMINDER",
+  MONTHLY_SUMMARY = "MONTHLY_SUMMARY",
 }

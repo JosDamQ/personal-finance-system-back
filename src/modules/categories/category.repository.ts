@@ -3,7 +3,10 @@ import { PrismaClient, Category } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export class CategoryRepository {
-  async create(userId: string, data: { name: string; color?: string; icon?: string }): Promise<Category> {
+  async create(
+    userId: string,
+    data: { name: string; color?: string; icon?: string },
+  ): Promise<Category> {
     return prisma.category.create({
       data: {
         userId,
@@ -17,10 +20,7 @@ export class CategoryRepository {
   async findByUserId(userId: string): Promise<Category[]> {
     return prisma.category.findMany({
       where: { userId },
-      orderBy: [
-        { isDefault: 'desc' },
-        { name: 'asc' }
-      ],
+      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
     });
   }
 
@@ -30,7 +30,11 @@ export class CategoryRepository {
     });
   }
 
-  async update(id: string, userId: string, data: { name?: string; color?: string; icon?: string }): Promise<Category> {
+  async update(
+    id: string,
+    userId: string,
+    data: { name?: string; color?: string; icon?: string },
+  ): Promise<Category> {
     return prisma.category.update({
       where: { id },
       data: {
@@ -44,11 +48,11 @@ export class CategoryRepository {
     // Primero verificar que la categoría existe y pertenece al usuario
     const category = await this.findById(id, userId);
     if (!category) {
-      throw new Error('Category not found');
+      throw new Error("Category not found");
     }
 
     if (category.isDefault) {
-      throw new Error('Cannot delete default category');
+      throw new Error("Cannot delete default category");
     }
 
     // Obtener categoría por defecto para reasignar gastos
@@ -57,7 +61,7 @@ export class CategoryRepository {
     });
 
     if (!defaultCategory) {
-      throw new Error('Default category not found');
+      throw new Error("Default category not found");
     }
 
     // Reasignar gastos a categoría por defecto y eliminar categoría
@@ -82,20 +86,24 @@ export class CategoryRepository {
     ];
 
     const categories = await Promise.all(
-      defaultCategories.map(category =>
+      defaultCategories.map((category) =>
         prisma.category.create({
           data: {
             userId,
             ...category,
           },
-        })
-      )
+        }),
+      ),
     );
 
     return categories;
   }
 
-  async checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
+  async checkNameExists(
+    userId: string,
+    name: string,
+    excludeId?: string,
+  ): Promise<boolean> {
     const category = await prisma.category.findFirst({
       where: {
         userId,

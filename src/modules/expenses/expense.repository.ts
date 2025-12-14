@@ -1,4 +1,5 @@
 import { PrismaClient, Expense, Currency } from "@prisma/client";
+
 import { CreateExpenseDto, UpdateExpenseDto, ExpenseFilters } from "./expense.types";
 
 const prisma = new PrismaClient();
@@ -86,7 +87,7 @@ export class ExpenseRepository {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -134,7 +135,7 @@ export class ExpenseRepository {
     // Verificar que el gasto existe y pertenece al usuario
     const expense = await this.findById(id, userId);
     if (!expense) {
-      throw new Error('Expense not found');
+      throw new Error("Expense not found");
     }
 
     await prisma.expense.delete({
@@ -155,7 +156,7 @@ export class ExpenseRepository {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -171,7 +172,7 @@ export class ExpenseRepository {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
@@ -195,11 +196,14 @@ export class ExpenseRepository {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 
-  async getSummaryByFilters(userId: string, filters?: ExpenseFilters): Promise<{
+  async getSummaryByFilters(
+    userId: string,
+    filters?: ExpenseFilters,
+  ): Promise<{
     totalGTQ: number;
     totalUSD: number;
     count: number;
@@ -286,16 +290,16 @@ export class ExpenseRepository {
 
     // Calculate totals
     const totalGTQ = expenses
-      .filter(e => e.currency === 'GTQ')
+      .filter((e) => e.currency === "GTQ")
       .reduce((sum, e) => sum + e.amount, 0);
-    
+
     const totalUSD = expenses
-      .filter(e => e.currency === 'USD')
+      .filter((e) => e.currency === "USD")
       .reduce((sum, e) => sum + e.amount, 0);
 
     // Group by category
     const categoryMap = new Map();
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const key = expense.categoryId;
       if (!categoryMap.has(key)) {
         categoryMap.set(key, {
@@ -309,7 +313,7 @@ export class ExpenseRepository {
         });
       }
       const category = categoryMap.get(key);
-      if (expense.currency === 'GTQ') {
+      if (expense.currency === "GTQ") {
         category.totalGTQ += expense.amount;
       } else {
         category.totalUSD += expense.amount;
@@ -319,7 +323,7 @@ export class ExpenseRepository {
 
     // Group by credit card
     const creditCardMap = new Map();
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       if (expense.creditCardId && expense.creditCard) {
         const key = expense.creditCardId;
         if (!creditCardMap.has(key)) {
@@ -333,7 +337,7 @@ export class ExpenseRepository {
           });
         }
         const creditCard = creditCardMap.get(key);
-        if (expense.currency === 'GTQ') {
+        if (expense.currency === "GTQ") {
           creditCard.totalGTQ += expense.amount;
         } else {
           creditCard.totalUSD += expense.amount;
@@ -365,9 +369,12 @@ export class ExpenseRepository {
     return !!creditCard;
   }
 
-  async validateBudgetPeriodExists(budgetPeriodId: string, userId: string): Promise<boolean> {
+  async validateBudgetPeriodExists(
+    budgetPeriodId: string,
+    userId: string,
+  ): Promise<boolean> {
     const budgetPeriod = await prisma.budgetPeriod.findFirst({
-      where: { 
+      where: {
         id: budgetPeriodId,
         budget: {
           userId: userId,

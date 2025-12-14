@@ -1,7 +1,7 @@
 export interface CreateBudgetDto {
   month: number;
   year: number;
-  paymentFrequency: 'BIWEEKLY' | 'MONTHLY';
+  paymentFrequency: "BIWEEKLY" | "MONTHLY";
   periods: CreateBudgetPeriodDto[];
 }
 
@@ -11,7 +11,7 @@ export interface CreateBudgetPeriodDto {
 }
 
 export interface UpdateBudgetDto {
-  paymentFrequency?: 'BIWEEKLY' | 'MONTHLY';
+  paymentFrequency?: "BIWEEKLY" | "MONTHLY";
   periods?: UpdateBudgetPeriodDto[];
 }
 
@@ -25,7 +25,7 @@ export interface BudgetResponse {
   id: string;
   month: number;
   year: number;
-  paymentFrequency: 'BIWEEKLY' | 'MONTHLY';
+  paymentFrequency: "BIWEEKLY" | "MONTHLY";
   totalIncome: number;
   periods: BudgetPeriodResponse[];
   createdAt: Date;
@@ -46,7 +46,7 @@ export interface BudgetSummaryResponse {
   id: string;
   month: number;
   year: number;
-  paymentFrequency: 'BIWEEKLY' | 'MONTHLY';
+  paymentFrequency: "BIWEEKLY" | "MONTHLY";
   totalIncome: number;
   totalExpenses: number;
   availableBalance: number;

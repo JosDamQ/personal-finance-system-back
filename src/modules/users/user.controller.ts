@@ -1,4 +1,5 @@
 import { Response } from "express";
+
 import { AuthRequest } from "../../middleware/auth.middleware";
 import prisma from "../../config/database";
 
@@ -11,8 +12,8 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "UNAUTHORIZED",
-          message: "User not authenticated"
-        }
+          message: "User not authenticated",
+        },
       });
     }
 
@@ -26,7 +27,7 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         defaultCurrency: true,
         theme: true,
         createdAt: true,
-      }
+      },
     });
 
     if (!user) {
@@ -34,14 +35,14 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "USER_NOT_FOUND",
-          message: "User not found"
-        }
+          message: "User not found",
+        },
       });
     }
 
     res.json({
       success: true,
-      data: user
+      data: user,
     });
   } catch (error) {
     console.error("Get profile error:", error);
@@ -49,8 +50,8 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Failed to get profile"
-      }
+        message: "Failed to get profile",
+      },
     });
   }
 };
@@ -65,8 +66,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "UNAUTHORIZED",
-          message: "User not authenticated"
-        }
+          message: "User not authenticated",
+        },
       });
     }
 
@@ -86,12 +87,12 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         defaultCurrency: true,
         theme: true,
         updatedAt: true,
-      }
+      },
     });
 
     res.json({
       success: true,
-      data: updatedUser
+      data: updatedUser,
     });
   } catch (error) {
     console.error("Update profile error:", error);
@@ -99,8 +100,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Failed to update profile"
-      }
+        message: "Failed to update profile",
+      },
     });
   }
 };

@@ -11,21 +11,20 @@ export class CleanupService {
       // Delete expired refresh tokens
       const deletedRefreshTokens = await prisma.refreshToken.deleteMany({
         where: {
-          OR: [
-            { expiresAt: { lt: now } },
-            { isRevoked: true }
-          ]
-        }
+          OR: [{ expiresAt: { lt: now } }, { isRevoked: true }],
+        },
       });
 
       // Delete expired blacklisted tokens
       const deletedBlacklistedTokens = await prisma.tokenBlacklist.deleteMany({
         where: {
-          expiresAt: { lt: now }
-        }
+          expiresAt: { lt: now },
+        },
       });
 
-      console.log(`🧹 Cleanup completed: ${deletedRefreshTokens.count} refresh tokens, ${deletedBlacklistedTokens.count} blacklisted tokens removed`);
+      console.log(
+        `🧹 Cleanup completed: ${deletedRefreshTokens.count} refresh tokens, ${deletedBlacklistedTokens.count} blacklisted tokens removed`,
+      );
     } catch (error) {
       console.error("❌ Error during token cleanup:", error);
     }
@@ -39,9 +38,12 @@ export class CleanupService {
     this.cleanExpiredTokens();
 
     // Then run every 24 hours
-    setInterval(() => {
-      this.cleanExpiredTokens();
-    }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+    setInterval(
+      () => {
+        this.cleanExpiredTokens();
+      },
+      24 * 60 * 60 * 1000,
+    ); // 24 hours in milliseconds
 
     console.log("🧹 Periodic token cleanup started (every 24 hours)");
   }

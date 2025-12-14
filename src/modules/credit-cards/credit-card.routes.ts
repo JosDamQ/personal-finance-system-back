@@ -1,6 +1,8 @@
 import { Router } from "express";
-import * as creditCardController from "./credit-card.controller";
+
 import { authenticate } from "../../middleware/auth.middleware";
+
+import * as creditCardController from "./credit-card.controller";
 
 const router = Router();
 
@@ -44,7 +46,11 @@ router.delete("/:id", authenticate, creditCardController.deleteCreditCard);
  * Get transaction history for specific credit card
  * Requires authentication
  */
-router.get("/:id/transactions", authenticate, creditCardController.getCreditCardTransactions);
+router.get(
+  "/:id/transactions",
+  authenticate,
+  creditCardController.getCreditCardTransactions,
+);
 
 /**
  * PUT /credit-cards/:id/balance
@@ -58,7 +64,11 @@ router.put("/:id/balance", authenticate, creditCardController.updateCreditCardBa
  * Check if credit card is approaching limit (80% threshold)
  * Requires authentication
  */
-router.get("/:id/limit-warning", authenticate, creditCardController.checkCreditLimitWarning);
+router.get(
+  "/:id/limit-warning",
+  authenticate,
+  creditCardController.checkCreditLimitWarning,
+);
 
 /**
  * GET /credit-cards/summary

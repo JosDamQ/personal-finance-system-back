@@ -3,7 +3,7 @@ export interface CreateExpenseDto {
   creditCardId?: string;
   budgetPeriodId?: string;
   amount: number;
-  currency: 'GTQ' | 'USD';
+  currency: "GTQ" | "USD";
   description: string;
   date: Date;
 }
@@ -13,7 +13,7 @@ export interface UpdateExpenseDto {
   creditCardId?: string;
   budgetPeriodId?: string;
   amount?: number;
-  currency?: 'GTQ' | 'USD';
+  currency?: "GTQ" | "USD";
   description?: string;
   date?: Date;
 }
@@ -24,7 +24,7 @@ export interface ExpenseResponse {
   creditCardId?: string;
   budgetPeriodId?: string;
   amount: number;
-  currency: 'GTQ' | 'USD';
+  currency: "GTQ" | "USD";
   description: string;
   date: Date;
   createdAt: Date;
@@ -53,7 +53,7 @@ export interface ExpenseFilters {
   categoryId?: string;
   creditCardId?: string;
   budgetPeriodId?: string;
-  currency?: 'GTQ' | 'USD';
+  currency?: "GTQ" | "USD";
   minAmount?: number;
   maxAmount?: number;
 }

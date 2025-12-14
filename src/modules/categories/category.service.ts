@@ -8,11 +8,14 @@ export class CategoryService {
     this.categoryRepository = new CategoryRepository();
   }
 
-  async createCategory(userId: string, data: CreateCategoryDto): Promise<CategoryResponse> {
+  async createCategory(
+    userId: string,
+    data: CreateCategoryDto,
+  ): Promise<CategoryResponse> {
     // Validar que el nombre no exista
     const nameExists = await this.categoryRepository.checkNameExists(userId, data.name);
     if (nameExists) {
-      throw new Error('Category name already exists');
+      throw new Error("Category name already exists");
     }
 
     const category = await this.categoryRepository.create(userId, data);
@@ -27,23 +30,31 @@ export class CategoryService {
   async getCategoryById(id: string, userId: string): Promise<CategoryResponse> {
     const category = await this.categoryRepository.findById(id, userId);
     if (!category) {
-      throw new Error('Category not found');
+      throw new Error("Category not found");
     }
     return this.mapToResponse(category);
   }
 
-  async updateCategory(id: string, userId: string, data: UpdateCategoryDto): Promise<CategoryResponse> {
+  async updateCategory(
+    id: string,
+    userId: string,
+    data: UpdateCategoryDto,
+  ): Promise<CategoryResponse> {
     // Verificar que la categoría existe
     const existingCategory = await this.categoryRepository.findById(id, userId);
     if (!existingCategory) {
-      throw new Error('Category not found');
+      throw new Error("Category not found");
     }
 
     // Si se está actualizando el nombre, verificar que no exista
     if (data.name && data.name !== existingCategory.name) {
-      const nameExists = await this.categoryRepository.checkNameExists(userId, data.name, id);
+      const nameExists = await this.categoryRepository.checkNameExists(
+        userId,
+        data.name,
+        id,
+      );
       if (nameExists) {
-        throw new Error('Category name already exists');
+        throw new Error("Category name already exists");
       }
     }
 
@@ -63,7 +74,8 @@ export class CategoryService {
     }
 
     // Crear categorías por defecto
-    const defaultCategories = await this.categoryRepository.createDefaultCategories(userId);
+    const defaultCategories =
+      await this.categoryRepository.createDefaultCategories(userId);
     return defaultCategories.map(this.mapToResponse);
   }
 

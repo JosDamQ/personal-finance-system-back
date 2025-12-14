@@ -1,4 +1,5 @@
 import { PrismaClient, Alert, AlertType } from "@prisma/client";
+
 import { CreateAlertDto, AlertFilters } from "./alert.types";
 
 const prisma = new PrismaClient();
@@ -18,18 +19,18 @@ export class AlertRepository {
 
   async findByUserId(userId: string, filters?: AlertFilters): Promise<Alert[]> {
     const where: any = { userId };
-    
+
     if (filters?.isRead !== undefined) {
       where.isRead = filters.isRead;
     }
-    
+
     if (filters?.type) {
       where.type = filters.type;
     }
 
     return prisma.alert.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: filters?.limit || 50,
       skip: filters?.offset || 0,
     });
@@ -44,7 +45,7 @@ export class AlertRepository {
   async markAsRead(id: string, userId: string): Promise<Alert> {
     return prisma.alert.update({
       where: { id },
-      data: { 
+      data: {
         isRead: true,
         updatedAt: new Date(),
       },
@@ -53,16 +54,16 @@ export class AlertRepository {
 
   async markAllAsRead(userId: string): Promise<number> {
     const result = await prisma.alert.updateMany({
-      where: { 
+      where: {
         userId,
         isRead: false,
       },
-      data: { 
+      data: {
         isRead: true,
         updatedAt: new Date(),
       },
     });
-    
+
     return result.count;
   }
 
@@ -70,7 +71,7 @@ export class AlertRepository {
     // Verificar que la alerta existe y pertenece al usuario
     const alert = await this.findById(id, userId);
     if (!alert) {
-      throw new Error('Alert not found');
+      throw new Error("Alert not found");
     }
 
     await prisma.alert.delete({
@@ -80,14 +81,18 @@ export class AlertRepository {
 
   async getUnreadCount(userId: string): Promise<number> {
     return prisma.alert.count({
-      where: { 
+      where: {
         userId,
         isRead: false,
       },
     });
   }
 
-  async findExistingAlert(userId: string, type: AlertType, metadata?: any): Promise<Alert | null> {
+  async findExistingAlert(
+    userId: string,
+    type: AlertType,
+    metadata?: any,
+  ): Promise<Alert | null> {
     // Para evitar alertas duplicadas, buscar alertas similares recientes (últimas 24 horas)
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
@@ -106,7 +111,7 @@ export class AlertRepository {
         where: {
           ...where,
           metadata: {
-            path: ['creditCardId'],
+            path: ["creditCardId"],
             equals: metadata.creditCardId,
           },
         },
@@ -119,7 +124,7 @@ export class AlertRepository {
         where: {
           ...where,
           metadata: {
-            path: ['budgetPeriodId'],
+            path: ["budgetPeriodId"],
             equals: metadata.budgetPeriodId,
           },
         },
@@ -151,7 +156,7 @@ export class AlertRepository {
   async getAlertsByType(userId: string, type: AlertType): Promise<Alert[]> {
     return prisma.alert.findMany({
       where: { userId, type },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 }

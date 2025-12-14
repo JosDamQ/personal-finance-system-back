@@ -1,9 +1,16 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
+
 import prisma from "../../config/database";
 import { env } from "../../config/env";
-import type { RegisterRequest, LoginRequest, AuthResponse, TokenPayload } from "./auth.types";
+
+import type {
+  RegisterRequest,
+  LoginRequest,
+  AuthResponse,
+  TokenPayload,
+} from "./auth.types";
 
 export class AuthService {
   /**
@@ -14,7 +21,7 @@ export class AuthService {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existingUser) {
@@ -30,7 +37,7 @@ export class AuthService {
         email,
         password: hashedPassword,
         name: name || null,
-      }
+      },
     });
 
     // Generate tokens
@@ -55,7 +62,7 @@ export class AuthService {
 
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (!user || !user.password) {
@@ -85,7 +92,9 @@ export class AuthService {
   /**
    * Refresh access token
    */
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshToken(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     // Verify refresh token
     let payload: any;
     try {
@@ -104,9 +113,9 @@ export class AuthService {
         sessionId,
         isRevoked: false,
         expiresAt: {
-          gt: new Date()
-        }
-      }
+          gt: new Date(),
+        },
+      },
     });
 
     if (!storedToken) {
@@ -116,7 +125,7 @@ export class AuthService {
     // Revoke old refresh token
     await prisma.refreshToken.update({
       where: { id: storedToken.id },
-      data: { isRevoked: true }
+      data: { isRevoked: true },
     });
 
     // Generate new tokens
@@ -132,14 +141,16 @@ export class AuthService {
     // Revoke refresh token
     await prisma.refreshToken.updateMany({
       where: { token: refreshToken },
-      data: { isRevoked: true }
+      data: { isRevoked: true },
     });
   }
 
   /**
    * Generate access and refresh tokens
    */
-  private async generateTokens(userId: string): Promise<{ accessToken: string; refreshToken: string }> {
+  private async generateTokens(
+    userId: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const sessionId = uuidv4();
 
     // Generate access token (15 minutes)
@@ -149,7 +160,7 @@ export class AuthService {
     };
 
     const accessToken = jwt.sign(accessTokenPayload, env.JWT_SECRET, {
-      expiresIn: "15m"
+      expiresIn: "15m",
     });
 
     // Generate refresh token (30 days)
@@ -159,7 +170,7 @@ export class AuthService {
     };
 
     const refreshToken = jwt.sign(refreshTokenPayload, env.JWT_SECRET, {
-      expiresIn: "30d"
+      expiresIn: "30d",
     });
 
     // Store refresh token in database
@@ -172,7 +183,7 @@ export class AuthService {
         token: refreshToken,
         sessionId,
         expiresAt,
-      }
+      },
     });
 
     return { accessToken, refreshToken };
@@ -184,13 +195,13 @@ export class AuthService {
   async verifyAccessToken(token: string): Promise<TokenPayload> {
     try {
       const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-      
+
       // Check if token is blacklisted
       const blacklisted = await prisma.tokenBlacklist.findFirst({
         where: {
           token,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date() },
+        },
       });
 
       if (blacklisted) {

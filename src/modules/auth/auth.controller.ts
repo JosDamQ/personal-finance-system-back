@@ -1,5 +1,7 @@
 import { Response } from "express";
+
 import { AuthRequest } from "../../middleware/auth.middleware";
+
 import { AuthService } from "./auth.service";
 import type { RegisterRequest, LoginRequest, RefreshRequest } from "./auth.types";
 
@@ -15,8 +17,8 @@ export const register = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "MISSING_FIELDS",
-          message: "Email and password are required"
-        }
+          message: "Email and password are required",
+        },
       });
     }
 
@@ -25,8 +27,8 @@ export const register = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "INVALID_PASSWORD",
-          message: "Password must be at least 6 characters"
-        }
+          message: "Password must be at least 6 characters",
+        },
       });
     }
 
@@ -34,7 +36,7 @@ export const register = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error: any) {
     console.error("Register error:", error);
@@ -44,8 +46,8 @@ export const register = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "EMAIL_EXISTS",
-          message: "Email already registered"
-        }
+          message: "Email already registered",
+        },
       });
     }
 
@@ -53,8 +55,8 @@ export const register = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Registration failed"
-      }
+        message: "Registration failed",
+      },
     });
   }
 };
@@ -69,8 +71,8 @@ export const login = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "MISSING_FIELDS",
-          message: "Email and password are required"
-        }
+          message: "Email and password are required",
+        },
       });
     }
 
@@ -78,7 +80,7 @@ export const login = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error: any) {
     console.error("Login error:", error);
@@ -88,8 +90,8 @@ export const login = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "INVALID_CREDENTIALS",
-          message: "Invalid email or password"
-        }
+          message: "Invalid email or password",
+        },
       });
     }
 
@@ -97,8 +99,8 @@ export const login = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Login failed"
-      }
+        message: "Login failed",
+      },
     });
   }
 };
@@ -112,8 +114,8 @@ export const refreshToken = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "MISSING_TOKEN",
-          message: "Refresh token is required"
-        }
+          message: "Refresh token is required",
+        },
       });
     }
 
@@ -121,7 +123,7 @@ export const refreshToken = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: tokens
+      data: tokens,
     });
   } catch (error: any) {
     console.error("Refresh token error:", error);
@@ -131,8 +133,8 @@ export const refreshToken = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "INVALID_TOKEN",
-          message: "Invalid or expired refresh token"
-        }
+          message: "Invalid or expired refresh token",
+        },
       });
     }
 
@@ -140,8 +142,8 @@ export const refreshToken = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Token refresh failed"
-      }
+        message: "Token refresh failed",
+      },
     });
   }
 };
@@ -155,8 +157,8 @@ export const logout = async (req: AuthRequest, res: Response) => {
         success: false,
         error: {
           code: "MISSING_TOKEN",
-          message: "Refresh token is required"
-        }
+          message: "Refresh token is required",
+        },
       });
     }
 
@@ -164,7 +166,7 @@ export const logout = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      message: "Logged out successfully"
+      message: "Logged out successfully",
     });
   } catch (error: any) {
     console.error("Logout error:", error);
@@ -173,8 +175,8 @@ export const logout = async (req: AuthRequest, res: Response) => {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Logout failed"
-      }
+        message: "Logout failed",
+      },
     });
   }
 };

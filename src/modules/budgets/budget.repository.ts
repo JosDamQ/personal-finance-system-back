@@ -1,10 +1,14 @@
 import { PrismaClient, Budget, BudgetPeriod, PaymentFrequency } from "@prisma/client";
+
 import { CreateBudgetDto, UpdateBudgetDto } from "./budget.types";
 
 const prisma = new PrismaClient();
 
 export class BudgetRepository {
-  async create(userId: string, data: CreateBudgetDto): Promise<Budget & { periods: BudgetPeriod[] }> {
+  async create(
+    userId: string,
+    data: CreateBudgetDto,
+  ): Promise<Budget & { periods: BudgetPeriod[] }> {
     // Calcular el total de ingresos
     const totalIncome = data.periods.reduce((sum, period) => sum + period.income, 0);
 
@@ -16,7 +20,7 @@ export class BudgetRepository {
         paymentFrequency: data.paymentFrequency as PaymentFrequency,
         totalIncome,
         periods: {
-          create: data.periods.map(period => ({
+          create: data.periods.map((period) => ({
             periodNumber: period.periodNumber,
             income: period.income,
           })),
@@ -24,7 +28,7 @@ export class BudgetRepository {
       },
       include: {
         periods: {
-          orderBy: { periodNumber: 'asc' },
+          orderBy: { periodNumber: "asc" },
         },
       },
     });
@@ -35,39 +39,47 @@ export class BudgetRepository {
       where: { userId },
       include: {
         periods: {
-          orderBy: { periodNumber: 'asc' },
+          orderBy: { periodNumber: "asc" },
         },
       },
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-      ],
+      orderBy: [{ year: "desc" }, { month: "desc" }],
     });
   }
 
-  async findById(id: string, userId: string): Promise<(Budget & { periods: BudgetPeriod[] }) | null> {
+  async findById(
+    id: string,
+    userId: string,
+  ): Promise<(Budget & { periods: BudgetPeriod[] }) | null> {
     return prisma.budget.findFirst({
       where: { id, userId },
       include: {
         periods: {
-          orderBy: { periodNumber: 'asc' },
+          orderBy: { periodNumber: "asc" },
         },
       },
     });
   }
 
-  async findByMonthYear(userId: string, month: number, year: number): Promise<(Budget & { periods: BudgetPeriod[] }) | null> {
+  async findByMonthYear(
+    userId: string,
+    month: number,
+    year: number,
+  ): Promise<(Budget & { periods: BudgetPeriod[] }) | null> {
     return prisma.budget.findFirst({
       where: { userId, month, year },
       include: {
         periods: {
-          orderBy: { periodNumber: 'asc' },
+          orderBy: { periodNumber: "asc" },
         },
       },
     });
   }
 
-  async update(id: string, userId: string, data: UpdateBudgetDto): Promise<Budget & { periods: BudgetPeriod[] }> {
+  async update(
+    id: string,
+    userId: string,
+    data: UpdateBudgetDto,
+  ): Promise<Budget & { periods: BudgetPeriod[] }> {
     // Si se están actualizando los períodos, recalcular el total
     let totalIncome: number | undefined;
     if (data.periods) {
@@ -94,7 +106,7 @@ export class BudgetRepository {
 
         // Crear nuevos períodos
         await tx.budgetPeriod.createMany({
-          data: data.periods.map(period => ({
+          data: data.periods.map((period) => ({
             budgetId: id,
             periodNumber: period.periodNumber,
             income: period.income,
@@ -107,7 +119,7 @@ export class BudgetRepository {
         where: { id },
         include: {
           periods: {
-            orderBy: { periodNumber: 'asc' },
+            orderBy: { periodNumber: "asc" },
           },
         },
       });
@@ -118,7 +130,7 @@ export class BudgetRepository {
     // Verificar que el presupuesto existe y pertenece al usuario
     const budget = await this.findById(id, userId);
     if (!budget) {
-      throw new Error('Budget not found');
+      throw new Error("Budget not found");
     }
 
     // Eliminar el presupuesto (los períodos se eliminan en cascada)
@@ -127,7 +139,12 @@ export class BudgetRepository {
     });
   }
 
-  async checkMonthYearExists(userId: string, month: number, year: number, excludeId?: string): Promise<boolean> {
+  async checkMonthYearExists(
+    userId: string,
+    month: number,
+    year: number,
+    excludeId?: string,
+  ): Promise<boolean> {
     const budget = await prisma.budget.findFirst({
       where: {
         userId,
@@ -152,7 +169,7 @@ export class BudgetRepository {
               },
             },
           },
-          orderBy: { periodNumber: 'asc' },
+          orderBy: { periodNumber: "asc" },
         },
       },
     });
@@ -173,20 +190,25 @@ export class BudgetRepository {
           },
         },
       },
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-      ],
+      orderBy: [{ year: "desc" }, { month: "desc" }],
     });
 
-    return budgets.map(budget => ({
+    return budgets.map((budget) => ({
       ...budget,
-      totalExpenses: budget.periods.reduce((sum, period) => 
-        sum + period.expenses.reduce((periodSum, expense) => periodSum + expense.amount, 0), 0
+      totalExpenses: budget.periods.reduce(
+        (sum, period) =>
+          sum +
+          period.expenses.reduce((periodSum, expense) => periodSum + expense.amount, 0),
+        0,
       ),
-      availableBalance: budget.totalIncome - budget.periods.reduce((sum, period) => 
-        sum + period.expenses.reduce((periodSum, expense) => periodSum + expense.amount, 0), 0
-      ),
+      availableBalance:
+        budget.totalIncome -
+        budget.periods.reduce(
+          (sum, period) =>
+            sum +
+            period.expenses.reduce((periodSum, expense) => periodSum + expense.amount, 0),
+          0,
+        ),
     }));
   }
 }

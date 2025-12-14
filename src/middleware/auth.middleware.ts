@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+
 import { AuthService } from "../modules/auth/auth.service";
 import type { TokenPayload } from "../modules/auth/auth.types";
 
@@ -28,8 +29,8 @@ export async function authenticate(
         success: false,
         error: {
           code: "NO_TOKEN",
-          message: "No token provided"
-        }
+          message: "No token provided",
+        },
       });
       return;
     }
@@ -41,8 +42,8 @@ export async function authenticate(
         success: false,
         error: {
           code: "NO_TOKEN",
-          message: "No token provided"
-        }
+          message: "No token provided",
+        },
       });
       return;
     }
@@ -61,8 +62,8 @@ export async function authenticate(
       success: false,
       error: {
         code: "INVALID_TOKEN",
-        message: "Invalid or expired token"
-      }
+        message: "Invalid or expired token",
+      },
     });
   }
 }
