@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  api:
+    build: ..
+    container_name: presupuesto-api
+    ports:
+      - "3001:3000"
+    env_file:
+      - ../.env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    container_name: presupuesto-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: damiangarcia
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: ubereats
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: presupuesto-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
