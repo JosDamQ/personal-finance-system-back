@@ -10,6 +10,7 @@ import creditCardRoutes from "./modules/credit-cards/credit-card.routes";
 import expenseRoutes from "./modules/expenses/expense.routes";
 import budgetRoutes from "./modules/budgets/budget.routes";
 import alertRoutes from "./modules/alerts/alert.routes";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -34,6 +35,7 @@ app.use("/credit-cards", creditCardRoutes);
 app.use("/expenses", expenseRoutes);
 app.use("/budgets", budgetRoutes);
 app.use("/alerts", alertRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 // Error handler must be last
 app.use(errorHandler);
