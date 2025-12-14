@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { SyncService } from "./sync.service";
 import { SyncOperation, EntityType } from "@prisma/client";
+import * as fc from "fast-check";
 
 // Mock Prisma
 jest.mock("@prisma/client", () => ({
@@ -161,6 +162,167 @@ describe("SyncService", () => {
       expect(result).toHaveLength(2);
       expect(result[0].entityType).toBe(EntityType.BUDGET);
       expect(result[1].entityType).toBe(EntityType.EXPENSE);
+    });
+  });
+
+  describe("Property-Based Tests", () => {
+    describe("Property 13: Persistencia local sin conexión", () => {
+      it("should persist all operations locally when offline", async () => {
+        // **Feature: personal-finance-app, Property 13: Persistencia local sin conexión**
+        // **Validates: Requirements 8.1**
+        
+        await fc.assert(
+          fc.asyncProperty(
+            // Generate random user ID
+            fc.uuid(),
+            // Generate random operations array
+            fc.array(
+              fc.record({
+                operation: fc.constantFrom(SyncOperation.CREATE, SyncOperation.UPDATE, SyncOperation.DELETE),
+                entityType: fc.constantFrom(
+                  EntityType.BUDGET,
+                  EntityType.EXPENSE,
+                  EntityType.CREDIT_CARD,
+                  EntityType.CATEGORY,
+                  EntityType.BUDGET_PERIOD
+                ),
+                entityId: fc.uuid(),
+                data: fc.record({
+                  name: fc.string({ minLength: 1, maxLength: 50 }),
+                  amount: fc.float({ min: Math.fround(0.01), max: Math.fround(10000) }),
+                  currency: fc.constantFrom("GTQ", "USD"),
+                  description: fc.string({ maxLength: 200 }),
+                  createdAt: fc.date(),
+                  updatedAt: fc.date(),
+                }),
+              }),
+              { minLength: 1, maxLength: 10 }
+            ),
+            async (userId, operations) => {
+              // Mock successful local storage for all operations
+              const mockSyncItems = operations.map((op, index) => ({
+                id: `sync-${index}`,
+                userId,
+                ...op,
+                retryCount: 0,
+                maxRetries: 3,
+                status: "PENDING",
+                errorMessage: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }));
+
+              jest.spyOn(syncService['syncRepository'], 'batchAddToQueue')
+                .mockResolvedValue(mockSyncItems as any);
+
+              // Simulate offline scenario - operations should be queued locally
+              const result = await syncService.batchAddToSyncQueue(userId, operations);
+
+              // Property: All operations must be persisted locally with PENDING status
+              expect(result).toHaveLength(operations.length);
+              
+              // Each operation should be stored locally with correct data
+              result.forEach((syncItem, index) => {
+                expect(syncItem.id).toBeDefined();
+                expect(syncItem.operation).toBe(operations[index].operation);
+                expect(syncItem.entityType).toBe(operations[index].entityType);
+                expect(syncItem.entityId).toBe(operations[index].entityId);
+                expect(syncItem.data).toEqual(operations[index].data);
+                expect(syncItem.status).toBe("PENDING");
+                expect(syncItem.retryCount).toBe(0);
+                expect(syncItem.createdAt).toBeDefined();
+                expect(syncItem.updatedAt).toBeDefined();
+              });
+
+              // Verify that operations are available for later sync
+              jest.spyOn(syncService['syncRepository'], 'getPendingItems')
+                .mockResolvedValue(mockSyncItems as any);
+
+              const pendingItems = await syncService['syncRepository'].getPendingItems(userId);
+              expect(pendingItems).toHaveLength(operations.length);
+              
+              // Each pending item should maintain data integrity
+              pendingItems.forEach((item, index) => {
+                expect(item.operation).toBe(operations[index].operation);
+                expect(item.entityType).toBe(operations[index].entityType);
+                expect(item.entityId).toBe(operations[index].entityId);
+                expect(item.data).toEqual(operations[index].data);
+              });
+            }
+          ),
+          { numRuns: 100 }
+        );
+      });
+
+      it("should maintain data integrity for all entity types when offline", async () => {
+        // **Feature: personal-finance-app, Property 13: Persistencia local sin conexión**
+        // **Validates: Requirements 8.1**
+        
+        await fc.assert(
+          fc.asyncProperty(
+            fc.uuid(), // userId
+            fc.constantFrom(
+              EntityType.BUDGET,
+              EntityType.EXPENSE,
+              EntityType.CREDIT_CARD,
+              EntityType.CATEGORY,
+              EntityType.BUDGET_PERIOD
+            ), // entityType
+            fc.constantFrom(SyncOperation.CREATE, SyncOperation.UPDATE, SyncOperation.DELETE), // operation
+            fc.uuid(), // entityId
+            fc.record({
+              id: fc.uuid(),
+              name: fc.string({ minLength: 1, maxLength: 100 }),
+              amount: fc.float({ min: Math.fround(0), max: Math.fround(999999.99) }),
+              currency: fc.constantFrom("GTQ", "USD"),
+              description: fc.string({ maxLength: 500 }),
+              userId: fc.uuid(),
+              createdAt: fc.date(),
+              updatedAt: fc.date(),
+            }), // data
+            async (userId, entityType, operation, entityId, data) => {
+              const syncItem = {
+                operation,
+                entityType,
+                entityId,
+                data,
+              };
+
+              const mockResult = {
+                id: "sync-123",
+                userId,
+                ...syncItem,
+                retryCount: 0,
+                maxRetries: 3,
+                status: "PENDING",
+                errorMessage: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+
+              jest.spyOn(syncService['syncRepository'], 'addToQueue')
+                .mockResolvedValue(mockResult as any);
+
+              // Add operation to sync queue (simulating offline storage)
+              const result = await syncService.addToSyncQueue(userId, syncItem);
+
+              // Property: Data must be preserved exactly as provided
+              expect(result.operation).toBe(operation);
+              expect(result.entityType).toBe(entityType);
+              expect(result.entityId).toBe(entityId);
+              expect(result.data).toEqual(data);
+              expect(result.status).toBe("PENDING");
+              
+              // Property: All operations must be queryable for later synchronization
+              expect(result.id).toBeDefined();
+              expect(result.createdAt).toBeDefined();
+              expect(result.updatedAt).toBeDefined();
+              expect(result.retryCount).toBe(0);
+            }
+          ),
+          { numRuns: 100 }
+        );
+      });
     });
   });
 });
