@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { env } from "../config/env";
-import { AuthenticationError, AuthorizationError } from "../utils/errors";
-import authService from "../modules/auth/auth.service";
-import type { TokenPayload } from "../modules/auth/types";
+import { AuthService } from "../modules/auth/auth.service";
+import type { TokenPayload } from "../modules/auth/auth.types";
+
+const authService = new AuthService();
 
 /**
  * Extended Request interface with user payload
@@ -14,10 +13,6 @@ export interface AuthRequest extends Request {
 
 /**
  * Authentication middleware
- *
- * Extracts and validates JWT token from Authorization header
- * Checks if token is blacklisted
- * Adds user payload to request object
  */
 export async function authenticate(
   req: AuthRequest,
@@ -29,77 +24,45 @@ export async function authenticate(
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new AuthenticationError("No token provided");
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "NO_TOKEN",
+          message: "No token provided"
+        }
+      });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     if (!token) {
-      throw new AuthenticationError("No token provided");
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "NO_TOKEN",
+          message: "No token provided"
+        }
+      });
+      return;
     }
 
-    // Check if token is blacklisted
-    const isBlacklisted = await authService.isBlacklisted(token);
-
-    if (isBlacklisted) {
-      throw new AuthenticationError("Token has been revoked");
-    }
-
-    // Validate JWT token
-    let payload: TokenPayload;
-    try {
-      payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        throw new AuthenticationError("Token has expired");
-      }
-      throw new AuthenticationError("Invalid token");
-    }
-
-    // Extract payload (userId, role, sessionId)
-    if (!payload.userId || !payload.role || !payload.sessionId) {
-      throw new AuthenticationError("Invalid token payload");
-    }
+    // Verify token
+    const payload = await authService.verifyAccessToken(token);
 
     // Add payload to req.user
-    req.user = {
-      userId: payload.userId,
-      role: payload.role,
-      sessionId: payload.sessionId,
-    };
+    req.user = payload;
 
-    // Call next() if everything is valid
     next();
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.error("Authentication error:", error);
+
+    res.status(401).json({
+      success: false,
+      error: {
+        code: "INVALID_TOKEN",
+        message: "Invalid or expired token"
+      }
+    });
   }
-}
-
-/**
- * Authorization middleware factory
- * Requirements: 8.1
- *
- * Verifies that the authenticated user has one of the required roles
- *
- * @param roles - Array of allowed roles
- * @returns Middleware function
- */
-export function authorize(...roles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    try {
-      // Ensure user is authenticated first
-      if (!req.user) {
-        throw new AuthenticationError("Authentication required");
-      }
-
-      // Check if user has required role
-      if (!roles.includes(req.user.role)) {
-        throw new AuthorizationError("Insufficient permissions");
-      }
-
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
 }

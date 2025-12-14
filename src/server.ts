@@ -1,7 +1,7 @@
 import "dotenv/config";
 import app from "./app";
 import prisma from "./config/database";
-import redisClient from "./config/redis";
+import { CleanupService } from "./services/cleanup.service";
 import { env } from "./config/env";
 
 const PORT = env.PORT;
@@ -13,11 +13,8 @@ async function startServer() {
     await prisma.$connect();
     console.log("✅ Database connected");
 
-    // Initialize Redis connection
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
-    }
-    console.log("✅ Redis connected");
+    // Start periodic cleanup of expired tokens
+    CleanupService.startPeriodicCleanup();
 
     // Start Express server
     app.listen(PORT, () => {
@@ -38,11 +35,7 @@ async function gracefulShutdown(signal: string) {
     await prisma.$disconnect();
     console.log("✅ Database disconnected");
 
-    // Close Redis connection
-    if (redisClient.isOpen) {
-      await redisClient.quit();
-      console.log("✅ Redis disconnected");
-    }
+    // Redis removido - solo cerramos Prisma
 
     process.exit(0);
   } catch (error) {

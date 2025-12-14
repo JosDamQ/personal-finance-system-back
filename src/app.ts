@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/user.routes";
+import categoryRoutes from "./modules/categories/category.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -23,6 +24,7 @@ app.get("/", (_req, res) => {
 // API Routes
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
+app.use("/categories", categoryRoutes);
 
 // Error handler must be last
 app.use(errorHandler);

@@ -13,12 +13,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model test {
-  id    Int     @id @default(autoincrement())                                                                                                   
-  email String  @unique                                                                                                                         
-  name  String?
-}
-
 model User {
     id            String    @id @default(uuid())
     email         String    @unique
@@ -30,9 +24,232 @@ model User {
     oauthProvider String?
     oauthId       String?
     
+    // Configuración de usuario
+    defaultCurrency String @default("GTQ")
+    theme          String @default("light")
+    
+    // Relaciones
+    budgets       Budget[]
+    creditCards   CreditCard[]
+    categories    Category[]
+    expenses      Expense[]
+    alerts        Alert[]
+    syncQueue     SyncQueue[]
+    refreshTokens RefreshToken[]
+    
     createdAt     DateTime  @default(now())
     updatedAt     DateTime  @updatedAt
     
     @@index([email])
     @@index([oauthProvider, oauthId])
+}
+
+model Budget {
+    id              String          @id @default(uuid())
+    userId          String
+    month           Int
+    year            Int
+    paymentFrequency PaymentFrequency
+    totalIncome     Float
+    
+    // Relaciones
+    user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+    periods         BudgetPeriod[]
+    
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt
+    
+    @@unique([userId, month, year])
+    @@index([userId, year, month])
+}
+
+model BudgetPeriod {
+    id          String    @id @default(uuid())
+    budgetId    String
+    periodNumber Int      // 1 para primera quincena, 2 para segunda
+    income      Float
+    
+    // Relaciones
+    budget      Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+    expenses    Expense[]
+    
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    
+    @@unique([budgetId, periodNumber])
+}
+
+model CreditCard {
+    id                String    @id @default(uuid())
+    userId            String
+    name              String
+    bank              String
+    limitGTQ          Float
+    limitUSD          Float
+    currentBalanceGTQ Float     @default(0)
+    currentBalanceUSD Float     @default(0)
+    isActive          Boolean   @default(true)
+    
+    // Relaciones
+    user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expenses          Expense[]
+    
+    createdAt         DateTime  @default(now())
+    updatedAt         DateTime  @updatedAt
+    
+    @@index([userId])
+}
+
+model Category {
+    id          String    @id @default(uuid())
+    userId      String
+    name        String
+    color       String    @default("#3B82F6")
+    icon        String    @default("💰")
+    isDefault   Boolean   @default(false)
+    
+    // Relaciones
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expenses    Expense[]
+    
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    
+    @@unique([userId, name])
+    @@index([userId])
+}
+
+model Expense {
+    id              String        @id @default(uuid())
+    userId          String
+    categoryId      String
+    creditCardId    String?
+    budgetPeriodId  String?
+    amount          Float
+    currency        Currency
+    description     String
+    date            DateTime
+    
+    // Relaciones
+    user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    category        Category      @relation(fields: [categoryId], references: [id])
+    creditCard      CreditCard?   @relation(fields: [creditCardId], references: [id])
+    budgetPeriod    BudgetPeriod? @relation(fields: [budgetPeriodId], references: [id])
+    
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+    
+    @@index([userId, date])
+    @@index([categoryId])
+    @@index([creditCardId])
+}
+
+model Alert {
+    id          String      @id @default(uuid())
+    userId      String
+    type        AlertType
+    title       String
+    message     String
+    isRead      Boolean     @default(false)
+    metadata    Json?       // Datos adicionales específicos del tipo de alerta
+    
+    // Relaciones
+    user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    
+    @@index([userId, isRead])
+}
+
+model SyncQueue {
+    id          String        @id @default(uuid())
+    userId      String
+    operation   SyncOperation
+    entityType  EntityType
+    entityId    String
+    data        Json          // Datos de la entidad para sincronizar
+    retryCount  Int           @default(0)
+    maxRetries  Int           @default(3)
+    status      SyncQueueStatus @default(PENDING)
+    errorMessage String?
+    
+    // Relaciones
+    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    
+    @@index([userId, status])
+    @@index([status, createdAt])
+}
+
+model RefreshToken {
+    id          String    @id @default(uuid())
+    userId      String
+    token       String    @unique
+    sessionId   String
+    expiresAt   DateTime
+    isRevoked   Boolean   @default(false)
+    
+    // Relaciones
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    
+    @@index([userId])
+    @@index([token])
+    @@index([sessionId])
+    @@index([expiresAt])
+}
+
+model TokenBlacklist {
+    id          String    @id @default(uuid())
+    token       String    @unique
+    expiresAt   DateTime
+    
+    createdAt   DateTime  @default(now())
+    
+    @@index([token])
+    @@index([expiresAt])
+}
+
+// Enums
+enum PaymentFrequency {
+    BIWEEKLY
+    MONTHLY
+}
+
+enum Currency {
+    GTQ
+    USD
+}
+
+enum AlertType {
+    CREDIT_LIMIT_WARNING
+    BUDGET_EXCEEDED
+    PAYMENT_REMINDER
+    MONTHLY_SUMMARY
+}
+
+enum SyncOperation {
+    CREATE
+    UPDATE
+    DELETE
+}
+
+enum EntityType {
+    BUDGET
+    EXPENSE
+    CREDIT_CARD
+    CATEGORY
+    BUDGET_PERIOD
+}
+
+enum SyncQueueStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
 }

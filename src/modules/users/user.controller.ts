@@ -1,141 +1,106 @@
-import { Response, NextFunction } from "express";
-import userService from "./user.service";
-import { ValidationError } from "../../utils/errors";
-import type { UpdateUserDTO, UpdatePasswordDTO } from "./types";
-import type { AuthRequest } from "../../middleware/auth.middleware";
+import { Response } from "express";
+import { AuthRequest } from "../../middleware/auth.middleware";
+import prisma from "../../config/database";
 
-/**
- * Get user profile
- * GET /users/me
- */
-export async function getProfile(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
-    // Ensure user is authenticated (middleware should have set req.user)
-    if (!req.user) {
-      throw new ValidationError("User not authenticated");
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "User not authenticated"
+        }
+      });
     }
 
-    // Get userId from req.user (set by authenticate middleware)
-    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        defaultCurrency: true,
+        theme: true,
+        createdAt: true,
+      }
+    });
 
-    // Call UserService getUserById method
-    const user = await userService.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: "USER_NOT_FOUND",
+          message: "User not found"
+        }
+      });
+    }
 
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        user,
-      },
-      message: "User profile retrieved successfully",
+    res.json({
+      success: true,
+      data: user
     });
   } catch (error) {
-    next(error);
+    console.error("Get profile error:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to get profile"
+      }
+    });
   }
-}
+};
 
-/**
- * Update user profile
- * PUT /users/me
- */
-export async function updateProfile(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
-    // Ensure user is authenticated (middleware should have set req.user)
-    if (!req.user) {
-      throw new ValidationError("User not authenticated");
+    const userId = req.user?.userId;
+    const { name, phone, defaultCurrency, theme } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "User not authenticated"
+        }
+      });
     }
 
-    // Get userId from req.user (set by authenticate middleware)
-    const userId = req.user.userId;
-
-    // Extract update data from request body
-    const { name, phone, email } = req.body;
-
-    const updateData: UpdateUserDTO = {};
-
-    if (name !== undefined) {
-      updateData.name = name;
-    }
-
-    if (phone !== undefined) {
-      updateData.phone = phone;
-    }
-
-    if (email !== undefined) {
-      updateData.email = email;
-    }
-
-    // Call UserService updateUser method
-    const updatedUser = await userService.updateUser(userId, updateData);
-
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
       data: {
-        user: updatedUser,
+        ...(name !== undefined && { name }),
+        ...(phone !== undefined && { phone }),
+        ...(defaultCurrency !== undefined && { defaultCurrency }),
+        ...(theme !== undefined && { theme }),
       },
-      message: "User profile updated successfully",
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        defaultCurrency: true,
+        theme: true,
+        updatedAt: true,
+      }
+    });
+
+    res.json({
+      success: true,
+      data: updatedUser
     });
   } catch (error) {
-    next(error);
-  }
-}
-
-/**
- * Change user password
- * PATCH /users/password
- */
-export async function changePassword(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    // Ensure user is authenticated (middleware should have set req.user)
-    if (!req.user) {
-      throw new ValidationError("User not authenticated");
-    }
-
-    // Get userId from req.user (set by authenticate middleware)
-    const userId = req.user.userId;
-
-    // Validate request body
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      throw new ValidationError("Current password and new password are required");
-    }
-
-    // Validate new password length
-    if (newPassword.length < 8) {
-      throw new ValidationError("New password must be at least 8 characters long");
-    }
-
-    const passwordData: UpdatePasswordDTO = {
-      currentPassword,
-      newPassword,
-    };
-
-    // Call UserService updatePassword method
-    const updatedUser = await userService.updatePassword(userId, passwordData);
-
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: updatedUser,
-      },
-      message: "Password updated successfully",
+    console.error("Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to update profile"
+      }
     });
-  } catch (error) {
-    next(error);
   }
-}
+};

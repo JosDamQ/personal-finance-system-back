@@ -5,7 +5,6 @@ config();
 // Validate required environment variables
 const requiredEnvVars = [
   "DATABASE_URL",
-  "REDIS_URL",
   "JWT_SECRET",
   "JWT_ACCESS_EXPIRATION",
   "JWT_REFRESH_EXPIRATION",
@@ -60,9 +59,6 @@ export const env = {
 
   // Database
   DATABASE_URL: process.env.DATABASE_URL!,
-
-  // Redis
-  REDIS_URL: process.env.REDIS_URL!,
 
   // JWT
   JWT_SECRET: process.env.JWT_SECRET!,

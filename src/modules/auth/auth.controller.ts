@@ -1,239 +1,180 @@
-import { Request, Response, NextFunction } from "express";
-import authService from "./auth.service";
-import { ValidationError } from "../../utils/errors";
-import type { RegisterDTO, LoginDTO, OAuthDTO } from "./types";
+import { Response } from "express";
+import { AuthRequest } from "../../middleware/auth.middleware";
+import { AuthService } from "./auth.service";
+import type { RegisterRequest, LoginRequest, RefreshRequest } from "./auth.types";
 
-/**
- * Register a new user
- * POST /auth/register
- */
-export async function register(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+const authService = new AuthService();
+
+export const register = async (req: AuthRequest, res: Response) => {
   try {
-    // Validate request body
-    const { email, password, name, phone } = req.body;
+    const data: RegisterRequest = req.body;
 
-    if (!email || !password) {
-      throw new ValidationError("Email and password are required");
+    // Basic validation
+    if (!data.email || !data.password) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_FIELDS",
+          message: "Email and password are required"
+        }
+      });
     }
 
-    const registerData: RegisterDTO = {
-      email,
-      password,
-      name,
-      phone,
-    };
+    if (data.password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_PASSWORD",
+          message: "Password must be at least 6 characters"
+        }
+      });
+    }
 
-    // Call AuthService register method
-    const result = await authService.register(registerData);
+    const result = await authService.register(data);
 
-    // Return response in standard format
     res.status(201).json({
-      status: "success",
-      data: {
-        user: result.user,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-      },
-      message: "User registered successfully",
+      success: true,
+      data: result
     });
-  } catch (error) {
-    next(error);
-  }
-}
+  } catch (error: any) {
+    console.error("Register error:", error);
 
-/**
- * Login with email and password
- * POST /auth/login
- */
-export async function login(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    // Validate request body
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw new ValidationError("Email and password are required");
+    if (error.message === "Email already registered") {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: "EMAIL_EXISTS",
+          message: "Email already registered"
+        }
+      });
     }
 
-    const loginData: LoginDTO = {
-      email,
-      password,
-    };
-
-    // Call AuthService login method
-    const result = await authService.login(loginData);
-
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: result.user,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-      },
-      message: "User logged in successfully",
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Registration failed"
+      }
     });
-  } catch (error) {
-    next(error);
   }
-}
+};
 
-/**
- * OAuth login with Google
- * POST /auth/oauth/google
- */
-export async function oauthGoogle(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export const login = async (req: AuthRequest, res: Response) => {
   try {
-    // Validate request body
-    const { idToken } = req.body;
+    const data: LoginRequest = req.body;
 
-    if (!idToken) {
-      throw new ValidationError("ID token is required");
+    // Basic validation
+    if (!data.email || !data.password) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_FIELDS",
+          message: "Email and password are required"
+        }
+      });
     }
 
-    const oauthData: OAuthDTO = {
-      idToken,
-      provider: "google",
-    };
+    const result = await authService.login(data);
 
-    // Call AuthService oauthLogin method
-    const result = await authService.oauthLogin(oauthData);
-
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: result.user,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-      },
-      message: "User logged in with Google successfully",
+    res.json({
+      success: true,
+      data: result
     });
-  } catch (error) {
-    next(error);
-  }
-}
+  } catch (error: any) {
+    console.error("Login error:", error);
 
-/**
- * OAuth login with Apple
- * POST /auth/oauth/apple
- */
-export async function oauthApple(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    // Validate request body
-    const { idToken } = req.body;
-
-    if (!idToken) {
-      throw new ValidationError("ID token is required");
+    if (error.message === "Invalid credentials") {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password"
+        }
+      });
     }
 
-    const oauthData: OAuthDTO = {
-      idToken,
-      provider: "apple",
-    };
-
-    // Call AuthService oauthLogin method
-    const result = await authService.oauthLogin(oauthData);
-
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: result.user,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-      },
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Login failed"
+      }
     });
-  } catch (error) {
-    next(error);
   }
-}
+};
 
-/**
- * Refresh access token
- * POST /auth/refresh
- */
-export async function refresh(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export const refreshToken = async (req: AuthRequest, res: Response) => {
   try {
-    // Validate request body
-    const { refreshToken } = req.body;
+    const { refreshToken }: RefreshRequest = req.body;
 
     if (!refreshToken) {
-      throw new ValidationError("Refresh token is required");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_TOKEN",
+          message: "Refresh token is required"
+        }
+      });
     }
 
-    // Call AuthService refreshToken method
     const tokens = await authService.refreshToken(refreshToken);
 
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-      message: "Token refreshed successfully",
+    res.json({
+      success: true,
+      data: tokens
     });
-  } catch (error) {
-    next(error);
-  }
-}
+  } catch (error: any) {
+    console.error("Refresh token error:", error);
 
-/**
- * Logout user
- * POST /auth/logout
- */
-export async function logout(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    // Extract access token from Authorization header
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new ValidationError("Access token is required");
+    if (error.message.includes("Invalid") || error.message.includes("expired")) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Invalid or expired refresh token"
+        }
+      });
     }
 
-    const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Token refresh failed"
+      }
+    });
+  }
+};
 
-    // Validate request body
-    const { refreshToken } = req.body;
+export const logout = async (req: AuthRequest, res: Response) => {
+  try {
+    const { refreshToken }: RefreshRequest = req.body;
 
     if (!refreshToken) {
-      throw new ValidationError("Refresh token is required");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_TOKEN",
+          message: "Refresh token is required"
+        }
+      });
     }
 
-    // Call AuthService logout method
-    await authService.logout(accessToken, refreshToken);
+    await authService.logout(refreshToken);
 
-    // Return response in standard format
-    res.status(200).json({
-      status: "success",
-      data: null,
-      message: "Logged out successfully",
+    res.json({
+      success: true,
+      message: "Logged out successfully"
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.error("Logout error:", error);
+
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Logout failed"
+      }
+    });
   }
-}
+};
