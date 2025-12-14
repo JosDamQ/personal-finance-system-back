@@ -55,6 +55,26 @@ export class ExpenseService {
     return expenses.map(this.mapToResponse);
   }
 
+  async getExpensesWithFilters(
+    userId: string,
+    filters: {
+      startDate?: Date;
+      endDate?: Date;
+      categoryId?: string;
+      creditCardId?: string;
+    },
+  ): Promise<ExpenseResponse[]> {
+    const expenseFilters: ExpenseFilters = {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      categoryId: filters.categoryId,
+      creditCardId: filters.creditCardId,
+    };
+    
+    const expenses = await this.expenseRepository.findByUserId(userId, expenseFilters);
+    return expenses.map(this.mapToResponse);
+  }
+
   async getExpenseById(id: string, userId: string): Promise<ExpenseResponse> {
     const expense = await this.expenseRepository.findById(id, userId);
     if (!expense) {
