@@ -17,6 +17,14 @@ export class ExpenseService {
     // Actualizar saldo de tarjeta de crédito si aplica
     if (data.creditCardId) {
       await this.updateCreditCardBalance(data.creditCardId, userId, data.amount, data.currency);
+      
+      // Verificar alertas de límite de crédito después de actualizar el saldo
+      await this.checkCreditLimitAlerts(userId, data.creditCardId);
+    }
+
+    // Verificar alertas de presupuesto excedido si aplica
+    if (data.budgetPeriodId) {
+      await this.checkBudgetExceededAlerts(userId, data.budgetPeriodId);
     }
 
     // Obtener el gasto completo con relaciones
@@ -255,6 +263,34 @@ export class ExpenseService {
       }
     } catch (error) {
       console.error('Error updating credit card balance:', error);
+      // No lanzar error para no bloquear la operación principal
+    }
+  }
+
+  private async checkCreditLimitAlerts(userId: string, creditCardId: string): Promise<void> {
+    try {
+      // Importar dinámicamente para evitar dependencias circulares
+      const { AlertService } = await import('../alerts/alert.service');
+      const alertService = new AlertService();
+      
+      // Ejecutar verificación de límites de crédito para esta tarjeta específica
+      await alertService.checkAndCreateCreditLimitWarnings(userId);
+    } catch (error) {
+      console.error('Error checking credit limit alerts:', error);
+      // No lanzar error para no bloquear la operación principal
+    }
+  }
+
+  private async checkBudgetExceededAlerts(userId: string, budgetPeriodId: string): Promise<void> {
+    try {
+      // Importar dinámicamente para evitar dependencias circulares
+      const { AlertService } = await import('../alerts/alert.service');
+      const alertService = new AlertService();
+      
+      // Verificar si el presupuesto ha sido excedido
+      await alertService.checkAndCreateBudgetExceededAlert(userId, budgetPeriodId);
+    } catch (error) {
+      console.error('Error checking budget exceeded alerts:', error);
       // No lanzar error para no bloquear la operación principal
     }
   }
