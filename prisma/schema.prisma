@@ -28,6 +28,13 @@ model User {
     defaultCurrency String @default("GTQ")
     theme          String @default("light")
     
+    // Preferencias de notificaciones
+    notificationsCreditLimit    Boolean @default(true)
+    notificationsBudgetExceeded Boolean @default(true)
+    notificationsPaymentReminder Boolean @default(true)
+    notificationsMonthlySummary Boolean @default(true)
+    notificationsEnabled        Boolean @default(true)
+    
     // Relaciones
     budgets       Budget[]
     creditCards   CreditCard[]
