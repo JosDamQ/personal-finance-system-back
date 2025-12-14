@@ -5,14 +5,27 @@ const prisma = new PrismaClient();
 export class CategoryRepository {
   async create(
     userId: string,
-    data: { name: string; color?: string; icon?: string },
+    data: { name: string; color?: string; icon?: string; isDefault?: boolean },
   ): Promise<Category> {
+    // Si no hay categorías para este usuario, hacer esta la primera por defecto
+    const existingCategories = await this.findByUserId(userId);
+    const shouldBeDefault = data.isDefault || existingCategories.length === 0;
+
+    // Si se está marcando como default, desmarcar las otras
+    if (shouldBeDefault) {
+      await prisma.category.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
     return prisma.category.create({
       data: {
         userId,
         name: data.name,
         color: data.color || "#3B82F6",
         icon: data.icon || "💰",
+        isDefault: shouldBeDefault,
       },
     });
   }
@@ -33,8 +46,16 @@ export class CategoryRepository {
   async update(
     id: string,
     userId: string,
-    data: { name?: string; color?: string; icon?: string },
+    data: { name?: string; color?: string; icon?: string; isDefault?: boolean },
   ): Promise<Category> {
+    // Si se está marcando como default, desmarcar las otras
+    if (data.isDefault === true) {
+      await prisma.category.updateMany({
+        where: { userId, isDefault: true, id: { not: id } },
+        data: { isDefault: false },
+      });
+    }
+
     return prisma.category.update({
       where: { id },
       data: {
@@ -45,35 +66,50 @@ export class CategoryRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    // Primero verificar que la categoría existe y pertenece al usuario
-    const category = await this.findById(id, userId);
-    if (!category) {
-      throw new Error("Category not found");
-    }
+    // Usar transacción para asegurar consistencia
+    await prisma.$transaction(async (tx) => {
+      // Verificar que la categoría existe y pertenece al usuario
+      const category = await tx.category.findFirst({
+        where: { id, userId },
+      });
+      
+      if (!category) {
+        throw new Error("Category not found");
+      }
 
-    if (category.isDefault) {
-      throw new Error("Cannot delete default category");
-    }
+      if (category.isDefault) {
+        throw new Error("Cannot delete default category");
+      }
 
-    // Obtener categoría por defecto para reasignar gastos
-    const defaultCategory = await prisma.category.findFirst({
-      where: { userId, isDefault: true },
-    });
+      // Buscar categoría por defecto
+      let defaultCategory = await tx.category.findFirst({
+        where: { userId, isDefault: true },
+      });
 
-    if (!defaultCategory) {
-      throw new Error("Default category not found");
-    }
+      // Si no hay categoría por defecto, crear una
+      if (!defaultCategory) {
+        defaultCategory = await tx.category.create({
+          data: {
+            userId,
+            name: "General",
+            color: "#3B82F6",
+            icon: "💰",
+            isDefault: true,
+          },
+        });
+      }
 
-    // Reasignar gastos a categoría por defecto y eliminar categoría
-    await prisma.$transaction([
-      prisma.expense.updateMany({
+      // Reasignar gastos a categoría por defecto
+      await tx.expense.updateMany({
         where: { categoryId: id },
         data: { categoryId: defaultCategory.id },
-      }),
-      prisma.category.delete({
+      });
+
+      // Eliminar la categoría
+      await tx.category.delete({
         where: { id },
-      }),
-    ]);
+      });
+    });
   }
 
   async createDefaultCategories(userId: string): Promise<Category[]> {

@@ -34,16 +34,16 @@ app.get("/", (_req, res) => {
 });
 
 // API Routes
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/categories", categoryRoutes);
-app.use("/credit-cards", creditCardRoutes);
-app.use("/expenses", expenseRoutes);
-app.use("/budgets", budgetRoutes);
-app.use("/alerts", alertRoutes);
-app.use("/dashboard", dashboardRoutes);
-app.use("/reports", reportRoutes);
-app.use("/sync", syncRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/credit-cards", creditCardRoutes);
+app.use("/api/v1/expenses", expenseRoutes);
+app.use("/api/v1/budgets", budgetRoutes);
+app.use("/api/v1/alerts", alertRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/reports", reportRoutes);
+app.use("/api/v1/sync", syncRoutes);
 
 // Error handler must be last
 app.use(errorHandler);
